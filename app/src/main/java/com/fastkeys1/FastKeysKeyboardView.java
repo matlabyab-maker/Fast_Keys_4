@@ -125,7 +125,6 @@ public class FastKeysKeyboardView extends View {
         Button transparency = drawerButton("شفافیت کیبورد");
         Button palette = drawerButton("رنگ کیبورد");
         Button emoji = drawerButton("انتخاب Emoji");
-        Button emojiMaker = drawerButton("ساخت Emoji");
         Button steering = drawerButton("فرمان ماشین");
         Button arabic = drawerButton("حرکت‌ها و صداهای عربی");
         Button history = drawerButton("تاریخچه کلیپ‌بورد (۱۰۰)");
@@ -135,7 +134,7 @@ public class FastKeysKeyboardView extends View {
 
         Button quickSettings = drawerButton("Quick Settings");
         Button topPage = drawerButton("بالای صفحه");
-        Button[] buttons={transparency,palette,emoji,emojiMaker,steering,arabic,history,magnifierButton,resize,mouse,quickSettings,topPage};
+        Button[] buttons={transparency,palette,emoji,steering,arabic,history,magnifierButton,resize,mouse,quickSettings,topPage};
         for(Button b:buttons) list.addView(b);
 
         final PopupWindow popup = new PopupWindow(panel,
@@ -152,7 +151,6 @@ public class FastKeysKeyboardView extends View {
         transparency.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showTransparency));
         palette.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showColorPalette));
         emoji.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showEmojiPicker));
-        emojiMaker.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showEmojiMaker));
         steering.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showSteeringWheel));
         arabic.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showArabicHarakat));
         history.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showClipboardHistory));
@@ -431,50 +429,6 @@ public class FastKeysKeyboardView extends View {
         b.setOnClickListener(v -> service.typeUnit(emoji));
     }
 
-    private void showEmojiMaker() {
-        final android.view.inputmethod.InputConnection target = service.getCurrentInputConnection();
-        LinearLayout root = new LinearLayout(service);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(24, 10, 24, 10);
-
-        final Button[] headerClose = new Button[1];
-        addPopupHeader(root, "ساخت Emoji", headerClose);
-
-        EditText input = new EditText(service);
-        input.setHint("ترکیب Emoji را وارد کنید");
-        input.setTextSize(24);
-        input.setGravity(Gravity.CENTER);
-        root.addView(input, new LinearLayout.LayoutParams(-1, 70));
-
-        GridLayout quick = new GridLayout(service);
-        quick.setColumnCount(4);
-        String[] parts = {"😀","😂","❤️","👍","🔥","⭐","✨","😎"};
-        for (String part : parts) {
-            Button b = new Button(service);
-            b.setText(part);
-            b.setTextSize(22);
-            b.setAllCaps(false);
-            b.setOnClickListener(v -> input.append(part));
-            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
-            lp.width = 0;
-            lp.height = 62;
-            lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            lp.setMargins(2, 2, 2, 2);
-            quick.addView(b, lp);
-        }
-        root.addView(quick, new LinearLayout.LayoutParams(-1, 132));
-
-        AlertDialog d = new AlertDialog.Builder(service)
-                .setView(root)
-                .setPositiveButton("ساخت و درج", (dialog, which) -> {
-                    String emojiText = input.getText().toString();
-                    if (!emojiText.isEmpty()) service.type(emojiText);
-                })
-                .create();
-        headerClose[0].setOnClickListener(v -> d.dismiss());
-        d.show();
-    }
-
     private void showSteeringWheel() {
         final SteeringView wheel = new SteeringView(service);
         final PopupWindow popup = new PopupWindow(wheel, 360, 430, false);
@@ -707,7 +661,7 @@ public class FastKeysKeyboardView extends View {
         rowFromRightReserved(c,y,keyH,r4,enterW);
 
         y+=keyH+gap;
-        String[] r5=englishMode ? (caps ? new String[]{"Z","X","C","V","B","N","M","<",">","?","?"} : new String[]{"z","x","c","v","b","n","m",",",".","/","?"}) : new String[]{"ظ","ط","ز","ر","ذ","د","ئ","پ","و","؟","،"};
+        String[] r5=englishMode ? (caps ? new String[]{"Z","X","C","V","B","N","M","<",">","?","?"} : new String[]{"z","x","c","v","b","n","m",",",".","/","?"}) : new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"};
         rowFromRightReservedWithEscape(c,y,keyH,r5,enterW);
         keyWithBackground(c,w-enterW,y-keyH-gap,w,y+keyH+gap,"Enter",NAVY,ENTER_BG,false);
 
@@ -833,13 +787,8 @@ public class FastKeysKeyboardView extends View {
                 txt(c,a[0],x+ww/2,y+keyH*.35f,Math.min(18,keyH*.28f),NAVY);
                 txt(c,a[1],x+ww/2,y+keyH*.70f,Math.min(18,keyH*.28f),NAVY);
             } else {
+                // Draw the third alphabet row only once so its glyphs have the same stroke weight as the other alphabet rows.
                 key(c,x,y,x+ww,y+keyH,s,BLUE,false);
-                // The second alphabet row uses a smaller, width-safe glyph size.
-                p.setTypeface(Typeface.create("sans",Typeface.NORMAL));
-                p.setTextSize(Math.min(17f,keyH*.29f));
-                p.setColor(BLUE); p.setTextAlign(Paint.Align.CENTER);
-                c.save(); c.clipRect(x+2,y+2,x+ww-2,y+keyH-2);
-                c.drawText(s,x+ww/2,y+keyH/2-(p.ascent()+p.descent())/2,p); c.restore();
             }
             x+=ww+gap;
         }
@@ -1077,9 +1026,9 @@ public class FastKeysKeyboardView extends View {
             if(row==4 && x<keyH){ service.move(KeyEvent.KEYCODE_DPAD_DOWN); return; }
             if(row==5 && x<keyH){ service.move(KeyEvent.KEYCODE_DPAD_UP); return; }
             String[] normal=englishMode ? (row==4?new String[]{"a","s","d","f","g","h","j","k","l",";","'"}:new String[]{"z","x","c","v","b","n","m",",",".","/","?"})
-                    : (row==4?new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","پ","و","؟","،"});
+                    : (row==4?new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"}:new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"});
             String[] shifted=englishMode ? (row==4?new String[]{"A","S","D","F","G","H","J","K","L",":","'"}:new String[]{"Z","X","C","V","B","N","M","<",">","?","?"})
-                    : (row==4?new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","پ","و","؟","،"});
+                    : (row==4?new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"}:new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"});
             float available=w-left-enterW-gap;
             float cw=(available-gap*(normal.length+1))/normal.length;
             float x0=left+gap;
