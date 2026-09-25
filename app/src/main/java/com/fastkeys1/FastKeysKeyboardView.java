@@ -172,49 +172,107 @@ public class FastKeysKeyboardView extends View {
     private void showCalculator() {
         LinearLayout root = new LinearLayout(service);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(18, 18, 18, 18);
+        root.setPadding(dp(10), dp(10), dp(10), dp(10));
+        root.setBackgroundColor(Color.WHITE);
+
         TextView display = new TextView(service);
         display.setText("0");
-        display.setTextSize(28);
+        display.setTextSize(26);
         display.setTextColor(BLACK);
         display.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
-        display.setPadding(12, 8, 12, 8);
+        display.setPadding(dp(10), dp(4), dp(10), dp(4));
         GradientDrawable dg = new GradientDrawable();
-        dg.setColor(Color.rgb(245,245,242)); dg.setStroke(1, Color.LTGRAY); dg.setCornerRadius(10);
+        dg.setColor(Color.rgb(245,245,242));
+        dg.setStroke(1, Color.LTGRAY);
+        dg.setCornerRadius(dp(6));
         display.setBackground(dg);
-        root.addView(display, new LinearLayout.LayoutParams(-1, 64));
-        LinearLayout grid = new LinearLayout(service);
-        grid.setOrientation(LinearLayout.VERTICAL);
-        String[][] keys={{"C","⌫","÷","×"},{"7","8","9","-"},{"4","5","6","+"},{"1","2","3","="},{"0",".","",""}};
-        final StringBuilder expr=new StringBuilder();
-        for(String[] row:keys){
-            LinearLayout line=new LinearLayout(service); line.setOrientation(LinearLayout.HORIZONTAL);
-            for(String k:row){
-                if(k.isEmpty()){ line.addView(new Space(service), new LinearLayout.LayoutParams(0,54,1)); continue; }
-                Button b=new Button(service); b.setText(k); b.setTextSize(18); b.setTextColor(NAVY); b.setAllCaps(false);
-                b.setOnClickListener(v->{
-                    String z=((Button)v).getText().toString();
-                    if(z.equals("C")){expr.setLength(0);display.setText("0");return;}
-                    if(z.equals("⌫")){if(expr.length()>0)expr.deleteCharAt(expr.length()-1);display.setText(expr.length()==0?"0":expr.toString());return;}
-                    if(z.equals("=")){try{double r=evalSimple(expr.toString()); String out=(r==Math.rint(r)?Long.toString((long)r):Double.toString(r)); expr.setLength(0);expr.append(out);display.setText(out);}catch(Exception ex){display.setText("خطا");expr.setLength(0);}return;}
-                    expr.append(z); display.setText(expr.toString());
-                });
-                line.addView(b,new LinearLayout.LayoutParams(0,54,1));
-            }
-            root.addView(line,new LinearLayout.LayoutParams(-1,54));
-        }
-        new AlertDialog.Builder(service).setTitle("ماشین حساب").setView(root).setPositiveButton("بستن",null).show();
-    }
+        root.addView(display, new LinearLayout.LayoutParams(-1, dp(52)));
 
-    private double evalSimple(String e) throws Exception {
-        if(e==null || e.trim().isEmpty()) throw new Exception();
-        e=e.replace('×','*').replace('÷','/').replace(" ","");
-        java.util.ArrayList<Double> nums=new java.util.ArrayList<>(); java.util.ArrayList<Character> ops=new java.util.ArrayList<>();
-        StringBuilder n=new StringBuilder();
-        for(int i=0;i<e.length();i++){char c=e.charAt(i); if((c>='0'&&c<='9')||c=='.'||(c=='-'&&n.length()==0&&(i==0||e.charAt(i-1)=='+'||e.charAt(i-1)=='-'||e.charAt(i-1)=='*'||e.charAt(i-1)=='/'))){n.append(c);} else if(c=='+'||c=='-'||c=='*'||c=='/'){if(n.length()==0)throw new Exception();nums.add(Double.parseDouble(n.toString()));n.setLength(0);ops.add(c);} else throw new Exception();}
-        if(n.length()==0)throw new Exception(); nums.add(Double.parseDouble(n.toString()));
-        for(int i=0;i<ops.size();){char op=ops.get(i); if(op=='*'||op=='/'){double a=nums.get(i),b=nums.get(i+1); if(op=='/'&&b==0)throw new Exception(); nums.set(i,op=='*'?a*b:a/b);nums.remove(i+1);ops.remove(i);}else i++;}
-        double r=nums.get(0); for(int i=0;i<ops.size();i++){double b=nums.get(i+1);r=ops.get(i)=='+'?r+b:r-b;} return r;
+        final double[] stored = {0};
+        final char[] operation = {' '};
+        final boolean[] entering = {false};
+
+        String[][] keys = {{"C","⌫","÷","×"},{"7","8","9","-"},{"4","5","6","+"},{"1","2","3","="},{"0",".","", ""}};
+        for (String[] row : keys) {
+            LinearLayout line = new LinearLayout(service);
+            line.setOrientation(LinearLayout.HORIZONTAL);
+            for (String k : row) {
+                if (k.isEmpty()) {
+                    line.addView(new Space(service), new LinearLayout.LayoutParams(0, dp(48), 1));
+                    continue;
+                }
+                Button btn = new Button(service);
+                btn.setText(k);
+                btn.setTextSize(17);
+                btn.setTextColor(NAVY);
+                btn.setAllCaps(false);
+                btn.setPadding(0, 0, 0, 0);
+                btn.setOnClickListener(v -> {
+                    String z = ((Button)v).getText().toString();
+                    String cur = display.getText().toString();
+                    if (z.equals("C")) {
+                        stored[0] = 0; operation[0] = ' '; entering[0] = false;
+                        display.setText("0");
+                        return;
+                    }
+                    if (z.equals("⌫")) {
+                        if (cur.length() > 1) display.setText(cur.substring(0, cur.length()-1));
+                        else display.setText("0");
+                        return;
+                    }
+                    if (z.equals(".") && cur.contains(".")) return;
+                    if (z.equals("+") || z.equals("-") || z.equals("×") || z.equals("÷")) {
+                        try { stored[0] = Double.parseDouble(cur); } catch (Exception ex) { stored[0] = 0; }
+                        operation[0] = z.charAt(0);
+                        entering[0] = true;
+                        return;
+                    }
+                    if (z.equals("=")) {
+                        if (operation[0] == ' ') return;
+                        try {
+                            double right = Double.parseDouble(cur);
+                            double result;
+                            switch (operation[0]) {
+                                case '+': result = stored[0] + right; break;
+                                case '-': result = stored[0] - right; break;
+                                case '×': result = stored[0] * right; break;
+                                case '÷': if (right == 0) throw new ArithmeticException(); result = stored[0] / right; break;
+                                default: return;
+                            }
+                            String out = (result == Math.rint(result)) ? Long.toString((long)result) : Double.toString(result);
+                            display.setText(out);
+                            stored[0] = result;
+                            operation[0] = ' ';
+                            entering[0] = true;
+                        } catch (Exception ex) {
+                            display.setText("خطا");
+                            stored[0] = 0; operation[0] = ' '; entering[0] = false;
+                        }
+                        return;
+                    }
+                    if (entering[0] || cur.equals("خطا")) {
+                        display.setText(z.equals(".") ? "0." : z);
+                        entering[0] = false;
+                    } else {
+                        display.setText(cur.equals("0") ? z : cur + z);
+                    }
+                });
+                line.addView(btn, new LinearLayout.LayoutParams(0, dp(48), 1));
+            }
+            root.addView(line, new LinearLayout.LayoutParams(-1, dp(48)));
+        }
+
+        final PopupWindow calc = new PopupWindow(root, dp(320), WindowManager.LayoutParams.WRAP_CONTENT, true);
+        calc.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
+        calc.setOutsideTouchable(true);
+        calc.setElevation(dp(8));
+        Button close = new Button(service);
+        close.setText("بستن");
+        close.setTextColor(NAVY);
+        close.setAllCaps(false);
+        close.setOnClickListener(v -> calc.dismiss());
+        root.addView(close, new LinearLayout.LayoutParams(-1, dp(44)));
+        calc.showAtLocation(this, Gravity.CENTER, 0, 0);
     }
 
     private void showAndKeepKeyboard(PopupWindow popup, Runnable action) {
@@ -565,7 +623,7 @@ public class FastKeysKeyboardView extends View {
             wp.setTextSize(12); c.drawText("Space", spaceRect.centerX(), spaceRect.centerY()-(wp.ascent()+wp.descent())/2, wp);
             wp.setTextSize(11); c.drawText("Backspace", backRect.centerX(), backRect.centerY()-(wp.ascent()+wp.descent())/2, wp);
 
-            float padSize=Math.min(w-90, 260);
+            float padSize=Math.min(w-90, Math.max(dp(170), Math.min(dp(210), h-dp(220)));
             float padLeft=(w-padSize)/2f;
             float padTop=72;
             padRect.set(padLeft,padTop,padLeft+padSize,padTop+padSize);
