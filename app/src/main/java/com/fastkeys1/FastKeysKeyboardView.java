@@ -133,8 +133,7 @@ public class FastKeysKeyboardView extends View {
         Button mouse = drawerButton("موس صفحه وب");
 
         Button quickSettings = drawerButton("Quick Settings");
-        Button topPage = drawerButton("بالای صفحه");
-        Button[] buttons={transparency,palette,emoji,steering,arabic,history,magnifierButton,resize,mouse,quickSettings,topPage};
+        Button[] buttons={transparency,palette,emoji,steering,arabic,history,magnifierButton,resize,mouse,quickSettings};
         for(Button b:buttons) list.addView(b);
 
         final PopupWindow popup = new PopupWindow(panel,
@@ -161,7 +160,6 @@ public class FastKeysKeyboardView extends View {
         resize.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showResizeFloatInfo));
         mouse.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showMouseControls));
         quickSettings.setOnClickListener(v -> { popup.dismiss(); service.requestQuickSettingsTiles(); });
-        topPage.setOnClickListener(v -> { popup.dismiss(); service.scrollToTop(); });
 
         popup.showAtLocation(this, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, dp(6));
         drawerOpen = true;
@@ -660,7 +658,7 @@ public class FastKeysKeyboardView extends View {
 
         y+=suggestionH+gap;
         float[] w2={.55f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,1.45f};
-        String[] sy={"⌃","!\n۱","@\n۲","#\n۳","$\n۴","%\n۵","^\n۶","&\n۷","*\n۸","(\n۹",")\n۰","_\n-","+\n=","⌫"};
+        String[] sy={"⌃","!\n1","@\n2","#\n3","$\n4","%\n5","^\n6","&\n7","*\n8","(\n9",")\n0","_\n-","+\n=","⌫"};
         float total2=0; for(float q:w2) total2+=q;
         float ww2=(w-gap*(w2.length+1))/total2, xx2=gap;
         for(int i=0;i<w2.length;i++){
@@ -681,14 +679,13 @@ public class FastKeysKeyboardView extends View {
 
         y+=keyH+gap;
         drawArrow(c,0,y,keyH,keyH,"↓");
-        float enterW = keyH + gap;
+        float enterW = 0;
         String[] r4=englishMode ? (caps ? new String[]{"A","S","D","F","G","H","J","K","L",":","\""} : new String[]{"a","s","d","f","g","h","j","k","l",";","'"}) : new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"};
         rowFromRightReserved(c,y,keyH,r4,enterW);
 
         y+=keyH+gap;
         String[] r5=englishMode ? (caps ? new String[]{"Z","X","C","V","B","N","M","<",">","?","?"} : new String[]{"z","x","c","v","b","n","m",",",".","/","?"}) : new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"};
         rowFromRightReservedWithEscape(c,y,keyH,r5,enterW);
-        keyWithBackground(c,w-enterW,y-keyH-gap,w,y+keyH+gap,"Enter",NAVY,ENTER_BG,false);
 
         y+=keyH+gap;
         float[] bw={1,1,1,3.9f,1.35f,1.35f,1.15f,1.15f};
@@ -705,7 +702,7 @@ public class FastKeysKeyboardView extends View {
     }
 
     private void drawCapsAndMagnifierRow(Canvas c,float y){
-        // Caps button intentionally removed. Keep only the alphabet row and magnifier.
+        // Keep the alphabet glyphs on the same text-rendering path as the other alphabet rows.
         float left=keyH+gap;
         float available=getWidth()-left-gap;
         float normalW=(available-gap*12f)/13f;
@@ -713,19 +710,7 @@ public class FastKeysKeyboardView extends View {
 
         String[] letters=englishMode ? new String[]{"q","w","e","r","t","y","u","i","o","p","[","]","\\"} : new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ"};
         for(String s:letters){
-            key(c,x,y,x+normalW,y+keyH,"",BLUE,false);
-            p.setTypeface(Typeface.create("sans",Typeface.NORMAL));
-            float maxSize=Math.min(20f,keyH*.30f), minSize=9f, size=maxSize;
-            float maxWidth=Math.max(8f,normalW-6f);
-            while(size>minSize){
-                p.setTextSize(size);
-                if(p.measureText(s)<=maxWidth && (p.descent()-p.ascent())<=keyH-6f) break;
-                size-=0.5f;
-            }
-            p.setColor(BLUE); p.setTextAlign(Paint.Align.CENTER); p.setStyle(Paint.Style.FILL);
-            c.save(); c.clipRect(x+3,y+3,x+normalW-3,y+keyH-3);
-            c.drawText(s,x+normalW/2,y+keyH/2-(p.ascent()+p.descent())/2,p);
-            c.restore();
+            key(c,x,y,x+normalW,y+keyH,s,BLUE,false);
             x+=normalW+gap;
         }
     }
@@ -1045,8 +1030,7 @@ public class FastKeysKeyboardView extends View {
             return;
         }
         if(row==4 || row==5){
-            float enterW=keyH+gap;
-            if(x>=w-enterW){ service.enter(); return; }
+            float enterW=0;
             float left=keyH;
             if(row==4 && x<keyH){ service.move(KeyEvent.KEYCODE_DPAD_DOWN); return; }
             if(row==5 && x<keyH){ service.move(KeyEvent.KEYCODE_DPAD_UP); return; }
