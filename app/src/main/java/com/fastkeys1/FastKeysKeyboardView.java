@@ -623,7 +623,7 @@ public class FastKeysKeyboardView extends View {
             wp.setTextSize(12); c.drawText("Space", spaceRect.centerX(), spaceRect.centerY()-(wp.ascent()+wp.descent())/2, wp);
             wp.setTextSize(11); c.drawText("Backspace", backRect.centerX(), backRect.centerY()-(wp.ascent()+wp.descent())/2, wp);
 
-            float padSize=Math.min(w-90, Math.max(dp(170), Math.min(dp(210), h-dp(220)));
+            float padSize=Math.min(w-90, Math.max(dp(170), Math.min(dp(210), h-dp(220))));
             float padLeft=(w-padSize)/2f;
             float padTop=72;
             padRect.set(padLeft,padTop,padLeft+padSize,padTop+padSize);
