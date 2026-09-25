@@ -268,33 +268,58 @@ public class FastKeysKeyboardView extends View {
         int currentSize=Math.max(minHeightDp,Math.min(maxHeightDp,savedKeyboardHeightDp()));
         sizeBar.setProgress(currentSize-minHeightDp);
         root.addView(sizeBar,new LinearLayout.LayoutParams(-1,60));
-        TextView sizeValue=new TextView(service); sizeValue.setText(currentSize+" dp"); sizeValue.setGravity(Gravity.CENTER); root.addView(sizeValue,new LinearLayout.LayoutParams(-1,42));
-        sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar b,int progress,boolean fromUser){int v=minHeightDp+progress; sizeValue.setText(v+" dp"); applyKeyboardHeightDp(v);} public void onStartTrackingTouch(SeekBar b){} public void onStopTrackingTouch(SeekBar b){}});
-        Button resize=new Button(service); resize.setText("تغییر اندازه با کشیدن گوشه"); root.addView(resize);
+        TextView sizeValue=new TextView(service);
+        sizeValue.setText(currentSize+" dp");
+        sizeValue.setGravity(Gravity.CENTER);
+        root.addView(sizeValue,new LinearLayout.LayoutParams(-1,42));
+        sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+            public void onProgressChanged(SeekBar b,int progress,boolean fromUser){
+                int v=minHeightDp+progress;
+                sizeValue.setText(v+" dp");
+                applyKeyboardHeightDp(v);
+            }
+            public void onStartTrackingTouch(SeekBar b){}
+            public void onStopTrackingTouch(SeekBar b){}
+        });
 
-        Button floatButton=new Button(service); floatButton.setText("Float — کیبورد شناور"); root.addView(floatButton);
-        Button stopFloat=new Button(service); stopFloat.setText("خاموش کردن Float"); root.addView(stopFloat);
-
+        Button resize=new Button(service);
+        resize.setText("تغییر اندازه با کشیدن گوشه");
+        root.addView(resize);
+        Button floatButton=new Button(service);
+        floatButton.setText("Float — کیبورد شناور");
+        root.addView(floatButton);
+        Button stopFloat=new Button(service);
+        stopFloat.setText("خاموش کردن Float");
+        root.addView(stopFloat);
         Button reset=new Button(service);
         reset.setText("Reset");
-        reset.setOnClickListener(v -> {
-            service.getSharedPreferences("fast_keys_settings",0).edit().remove("keyboard_height_dp").apply();
-            applyKeyboardHeightDp(defaultHeightDp);
-            exitResizeMode();
-        });
         root.addView(reset);
-
         Button okay=new Button(service);
         okay.setText("Okay");
         root.addView(okay);
 
-        AlertDialog d=new AlertDialog.Builder(service).setView(root).create();
-        headerClose[0].setOnClickListener(v -> d.dismiss());
-        resize.setOnClickListener(v->{ enterResizeMode(); d.dismiss(); });
-        floatButton.setOnClickListener(v->{ service.startFloatingKeyboard(); d.dismiss(); });
-        stopFloat.setOnClickListener(v->{ service.stopFloatingKeyboard(); d.dismiss(); });
-        okay.setOnClickListener(v->{ exitResizeMode(); d.dismiss(); });
-        d.show();
+        final PopupWindow popup=new PopupWindow(root,
+                Math.min(dp(430),Math.max(dp(310),getWidth()-dp(12))),
+                WindowManager.LayoutParams.WRAP_CONTENT, false);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
+        popup.setTouchable(true);
+        popup.setFocusable(false);
+        popup.setOutsideTouchable(true);
+        popup.setInputMethodMode(WindowManager.LayoutParams.INPUT_METHOD_NOT_NEEDED);
+        popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+        popup.setElevation(10f);
+
+        headerClose[0].setOnClickListener(v -> popup.dismiss());
+        resize.setOnClickListener(v->{ popup.dismiss(); enterResizeMode(); });
+        floatButton.setOnClickListener(v->{ popup.dismiss(); service.startFloatingKeyboard(); });
+        stopFloat.setOnClickListener(v->{ popup.dismiss(); service.stopFloatingKeyboard(); });
+        reset.setOnClickListener(v->{
+            service.getSharedPreferences("fast_keys_settings",0).edit().remove("keyboard_height_dp").apply();
+            applyKeyboardHeightDp(defaultHeightDp);
+            exitResizeMode();
+        });
+        okay.setOnClickListener(v->{ exitResizeMode(); popup.dismiss(); });
+        popup.showAtLocation(this,Gravity.CENTER,0,0);
     }
 
     private void showClipboardHistory() {
