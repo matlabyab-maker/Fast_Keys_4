@@ -305,7 +305,7 @@ public class FastKeysKeyboardView extends View {
         popup.setTouchable(true);
         popup.setFocusable(false);
         popup.setOutsideTouchable(true);
-        popup.setInputMethodMode(WindowManager.LayoutParams.INPUT_METHOD_NOT_NEEDED);
+        popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
         popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
         popup.setElevation(10f);
 
