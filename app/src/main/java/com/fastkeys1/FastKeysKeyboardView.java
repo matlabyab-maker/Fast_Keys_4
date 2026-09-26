@@ -39,6 +39,7 @@ public class FastKeysKeyboardView extends View {
         }
     };
     private final String[] suggestions = new String[6];
+    private boolean suggestionsHidden = false;
     private float suggestionH;
     private static final String[][] WORDS = {
         {"سلام","سلامت","سلامتی"},{"من","منم","منطقه"},{"این","اینجا","اینجانب"},
@@ -755,29 +756,45 @@ public class FastKeysKeyboardView extends View {
         float w=getWidth();
         float y=gap;
 
-        float[] wt={.55f,1.45f,1.55f,1.05f,1.0f,1.0f,1.0f,1.25f,1.05f};
-        String[] top={"","Copy All","Copy Screen","Paste","Cut","Undo","Redo","100\nHistory","امکانات"};
-        row(c,y,wt,top);
-        float wtSum = 0f;
-        for (float value : wt) wtSum += value;
-        drawMicrophone(c, gap, y, gap + wt[0] * ((w-gap*(wt.length+1))/wtSum), y + keyH);
+        // Rest 29: page-down/page-up together at the far left, then microphone, toolbar, mouse and Hidden.
+        float[] topW={1,1,1,1.45f,1.55f,1.05f,1,1,1,1.25f,1,1};
+        float topTotal=0; for(float q:topW) topTotal+=q;
+        float topUnit=(w-gap*(topW.length+1))/topTotal, tx=gap;
+        String[] top={"","","","Copy All","Copy Screen","Paste","Cut","Undo","Redo","100\nHistory","","Hidden"};
+        for(int i=0;i<topW.length;i++){
+            float cw=topW[i]*topUnit;
+            if(i==0 || i==1) keyWithBackground(c,tx,y,tx+cw,y+keyH,"",NAVY,KEY,false);
+            else if(i==2) keyWithBackground(c,tx,y,tx+cw,y+keyH,"",NAVY,KEY,false);
+            else keyWithBackground(c,tx,y,tx+cw,y+keyH,top[i],NAVY,KEY,false);
+            if(i==0) drawArrow(c,tx,y,cw,keyH,"↓");
+            if(i==1) drawArrow(c,tx,y,cw,keyH,"↑");
+            if(i==2) drawMicrophone(c,tx,y,tx+cw,y+keyH);
+            if(i==10) drawMousePointer(c,tx,y,tx+cw,y+keyH);
+            tx+=cw+gap;
+        }
 
         y+=keyH+gap;
-        String[] sug=suggestions;
-        for(int i=0;i<6;i++)
-            key(c,i*w/6f+gap/2f,y,(i+1)*w/6f-gap/2f,y+suggestionH,sug[i],BLUE,false);
+        float suggestionTotal=w-gap*8f;
+        float sw=suggestionTotal/8f;
+        for(int i=0;i<6;i++){
+            String s=suggestionsHidden?"":suggestions[i];
+            key(c,gap+i*sw,y,gap+(i+1)*sw-gap,y+suggestionH,s,BLUE,false);
+        }
+        key(c,gap+6*sw,y,gap+7*sw-gap,y+suggestionH,"Hidden",NAVY,false);
+        key(c,gap+7*sw,y,gap+8*sw-gap,y+suggestionH,"ثابت",NAVY,false);
 
         y+=suggestionH+gap;
-        float[] w2={.55f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,1.45f};
-        String[] sy=englishMode ? new String[]{"⌃","!\n1","@\n2","#\n3","$\n4","%\n5","^\n6","&\n7","*\n8","(\n9",")\n0","_\n-","+\n=","⌫"} : new String[]{"⌃","!\n۱","@\n۲","#\n۳","$\n۴","%\n۵","^\n۶","&\n۷","*\n۸","(\n۹",")\n۰","_\n-","+\n=","⌫"};
+        // Number/symbol row: no extra control key; backspace is wide on the far right.
+        float[] w2={1,1,1,1,1,1,1,1,1,1,1,1,1.45f};
+        String[] sy=englishMode ? new String[]{"!\n1","@\n2","#\n3","$\n4","%\n5","^\n6","&\n7","*\n8","(\n9",")\n0","_\n-","+\n=","⌫"} : new String[]{"!\n۱","@\n۲","#\n۳","$\n۴","%\n۵","^\n۶","&\n۷","*\n۸","(\n۹",")\n۰","_\n-","+\n=","⌫"};
         float total2=0; for(float q:w2) total2+=q;
         float ww2=(w-gap*(w2.length+1))/total2, xx2=gap;
         for(int i=0;i<w2.length;i++){
             float cw=w2[i]*ww2; String s2=sy[i];
-            int bg2=(i>=1 && i<=11)?NUMBER_BG:KEY; if(i==13) bg2=BACKSPACE_BG;
+            int bg2=(i<12)?NUMBER_BG:BACKSPACE_BG;
             if(s2.contains("\n")){
                 keyWithBackground(c,xx2,y,xx2+cw,y+keyH,"",NAVY,bg2,false); String[] aa=s2.split("\n");
-                int numberColor = (i>=1 && i<=12) ? Color.rgb(125,78,38) : NAVY;
+                int numberColor=Color.rgb(125,78,38);
                 txt(c,aa[0],xx2+cw/2,y+keyH*.35f,Math.min(20,keyH*.3f),numberColor);
                 txt(c,aa[1],xx2+cw/2,y+keyH*.7f,Math.min(20,keyH*.3f),numberColor);
             } else keyWithBackground(c,xx2,y,xx2+cw,y+keyH,s2,NAVY,bg2,false);
@@ -785,20 +802,25 @@ public class FastKeysKeyboardView extends View {
         }
 
         y+=keyH+gap;
-        drawCapsAndMagnifierRow(c,y);
+        float enterW=keyH+gap;
+        String[] r3=englishMode ? new String[]{"q","w","e","r","t","y","u","i","o","p","[","]"} : new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ"};
+        rowEqual(c,y,0,r3,enterW);
 
         y+=keyH+gap;
-        float enterW = 0;
-        String[] r4=englishMode ? (caps ? new String[]{"A","S","D","F","G","H","J","K","L",":","\""} : new String[]{"a","s","d","f","g","h","j","k","l",";","'"}) : new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"};
-        rowFromRightReserved(c,y,0,r4,enterW);
+        String[] r4=englishMode ? new String[]{"a","s","d","f","g","h","j","k","l",";","'"} : new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"};
+        rowWithLeftKey(c,y,"Caps",r4,enterW);
 
         y+=keyH+gap;
-        String[] r5=englishMode ? (caps ? new String[]{"Z","X","C","V","B","N","M","<",">","?","?"} : new String[]{"z","x","c","v","b","n","m",",",".","/","?"}) : new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"};
-        rowFromRightReservedWithEscape(c,y,0,r5,enterW);
+        String[] r5=englishMode ? new String[]{"z","x","c","v","b","n","m",",",".","/","?"} : new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"};
+        rowWithPunctuation(c,y,r5,enterW,englishMode);
+
+        // Enter occupies the right side of the three alphabet rows.
+        float enterTop=y-2*(keyH+gap);
+        keyWithBackground(c,w-enterW+gap,enterTop,w,enterTop+3*keyH+2*gap,"Enter",NAVY,Color.rgb(126,203,244),false);
 
         y+=keyH+gap;
-        float[] bw={1,1,1,3.9f,1.35f,1.35f,1.35f,1.35f};
-        String[] b={"!#@","◎","😀","Space","↑","↓","←","→"};
+        float[] bw={1,1,1,3.3f,1,1.35f,1.35f,1.35f,1.35f};
+        String[] b={"!#@","◎","😀","Space",".","←","→","↑","↓"};
         float totalB=0; for(float q:bw) totalB+=q;
         float unitB=(w-gap*(bw.length+1))/totalB, xb=gap;
         for(int i=0;i<b.length;i++){
@@ -810,18 +832,36 @@ public class FastKeysKeyboardView extends View {
         }
     }
 
-    private void drawCapsAndMagnifierRow(Canvas c,float y){
-        // Keep the alphabet glyphs on the same text-rendering path as the other alphabet rows.
-        float left=0;
-        float available=getWidth()-left-gap;
-        float normalW=(available-gap*12f)/13f;
+    private void rowEqual(Canvas c,float y,float left,String[] labels,float reservedRight){
+        float available=getWidth()-left-reservedRight-gap;
+        float ww=(available-gap*(labels.length+1))/labels.length;
         float x=left+gap;
+        for(String s:labels){ key(c,x,y,x+ww,y+keyH,s,BLUE,false); x+=ww+gap; }
+    }
 
-        String[] letters=englishMode ? new String[]{"q","w","e","r","t","y","u","i","o","p","[","]","\\"} : new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ"};
-        for(String s:letters){
-            key(c,x,y,x+normalW,y+keyH,s,BLUE,false);
-            x+=normalW+gap;
+    private void rowWithLeftKey(Canvas c,float y,String leftLabel,String[] labels,float reservedRight){
+        float leftW=keyH*.70f;
+        float available=getWidth()-reservedRight-gap-leftW;
+        float base=(available-gap*12f)/10.7f;
+        float x=gap;
+        key(c,x,y,x+leftW,y+keyH,leftLabel,NAVY,false);
+        x+=leftW+gap;
+        for(int i=0;i<labels.length;i++){
+            float cw=(i>=9)?base*1.35f:base;
+            key(c,x,y,x+cw,y+keyH,labels[i],BLUE,false);
+            x+=cw+gap;
         }
+    }
+
+    private void rowWithPunctuation(Canvas c,float y,String[] labels,float reservedRight,boolean english){
+        float available=getWidth()-reservedRight-gap;
+        float ww=(available-gap*(labels.length+1))/labels.length;
+        float x=gap;
+        for(String s:labels){ key(c,x,y,x+ww,y+keyH,s,BLUE,false); x+=ww+gap; }
+    }
+
+    private void drawCapsAndMagnifierRow(Canvas c,float y){
+        // Kept for source compatibility; Rest 29 draws the alphabet rows directly.
     }
 
     private void drawMicrophone(Canvas c,float l,float t,float r,float b){
@@ -995,38 +1035,41 @@ public class FastKeysKeyboardView extends View {
         return t + (row-2)*(keyH+gap);
     }
 
-    private void pressRectFor(float x, float y, boolean held){
-        float w=getWidth(); int row=getRowAt(y); if(row<0||row>6){clearPressGlowNow();return;}
-        float t=rowTop(row),b=t+(row==1?suggestionH:keyH),l=gap,r;
-        if(row==0){float[] wt={.55f,1.45f,1.55f,1.05f,1,1,1,1.25f};float total=0;for(float q:wt)total+=q;float u=(w-gap*(wt.length+1))/total;for(int i=0;i<wt.length;i++){r=l+u*wt[i];if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;}return;}
-        if(row==1){float cw=w/6f;int i=Math.max(0,Math.min(5,(int)(x/cw)));setPressGlow(i*cw,t,(i+1)*cw,b,held);return;}
-        if(row==2){float[] wt={.55f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,1.45f};float total=0;for(float q:wt)total+=q;float u=(w-gap*(wt.length+1))/total;for(int i=0;i<wt.length;i++){r=l+u*wt[i];if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;}return;}
+    private void pressRectFor(float x,float y,boolean held){
+        float w=getWidth(); int row=getRowAt(y);
+        if(row<0||row>6){clearPressGlowNow();return;}
+        float t=rowTop(row), b=t+(row==1?suggestionH:keyH);
+        if(row==0){
+            float[] wt={1,1,1,1.45f,1.55f,1.05f,1,1,1,1.25f,1,1};
+            float total=0;for(float q:wt)total+=q;float u=(w-gap*(wt.length+1))/total,l=gap;
+            for(float q:wt){float r=l+u*q;if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;} return;
+        }
+        if(row==1){
+            float sw=(w-gap*8f)/8f; int i=(int)((x-gap)/sw); if(i<0)i=0;if(i>7)i=7;
+            setPressGlow(gap+i*sw,t,gap+(i+1)*sw-gap,b,held);return;
+        }
+        if(row==2){
+            float[] wt={1,1,1,1,1,1,1,1,1,1,1,1,1.45f};float total=0;for(float q:wt)total+=q;float u=(w-gap*(wt.length+1))/total,l=gap;
+            for(float q:wt){float r=l+u*q;if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;}return;
+        }
+        float enterW=keyH+gap;
+        if(row>=3&&row<=5&&x>w-enterW){setPressGlow(w-enterW,t,w, row==5?b:b,held);return;}
         if(row==3){
-            float left=keyH+gap,capsW=keyH*.70f,available=w-left-gap,normalW=(available-capsW-gap*14f)/13f,x0=left+gap;
-            if(x>=x0&&x<x0+capsW){setPressGlow(x0,t,x0+capsW,b,held);return;}
-            x0+=capsW+gap;
-            for(int i=0;i<13;i++){if(x>=x0&&x<x0+normalW){setPressGlow(x0,t,x0+normalW,b,held);return;}x0+=normalW+gap;}
-            return;
+            float available=w-enterW-gap, ww=(available-gap*13f)/12f,l=gap;
+            for(int i=0;i<12;i++){float r=l+ww;if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;}return;
         }
-        if(row==4 || row==5){
-            float enterW=keyH+gap;
-            if(x>w-enterW){setPressGlow(w-enterW,t,w,b+(row==4?keyH+gap:0),held);return;}
-            if(row==4 && x<keyH){setPressGlow(0,t,keyH,b,held);return;}
-            float left=keyH; int count=11;
-            if(row==4){
-                float available=w-left-enterW-gap;
-                float cw=(available-gap*(count+1))/count;
-                float x0=left+gap;
-                for(int i=0;i<count;i++){ if(x>=x0&&x<x0+cw){setPressGlow(x0,t,x0+cw,b,held);return;} x0+=cw+gap; }
-            } else {
-                float available=w-left-enterW-gap;
-                float cw=(available-gap*(count+1))/count;
-                float x0=left+gap;
-                for(int i=0;i<count;i++){ if(x>=x0&&x<x0+cw){setPressGlow(x0,t,x0+cw,b,held);return;} x0+=cw+gap; }
-            }
-            return;
+        if(row==4){
+            float leftW=keyH*.70f,l=gap; if(x>=l&&x<l+leftW){setPressGlow(l,t,l+leftW,b,held);return;}
+            l+=leftW+gap; float available=w-enterW-gap-leftW; float unit=(available-gap*12f)/10.0f;
+            // Nine ordinary keys, then two wider punctuation keys.
+            for(int i=0;i<11;i++){float q=(i>=9)?unit*1.35f:unit;float r=l+q;if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;}return;
         }
-        float[] bw={1,1,1,3.9f,1.35f,1.35f,1.35f,1.35f};float total=0;for(float q:bw)total+=q;float u=(w-gap*(bw.length+1))/total;for(int i=0;i<bw.length;i++){r=l+u*bw[i];if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;}
+        if(row==5){
+            float available=w-enterW-gap, ww=(available-gap*12f)/11f,l=gap;
+            for(int i=0;i<11;i++){float r=l+ww;if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;}return;
+        }
+        float[] bw={1,1,1,3.3f,1,1.35f,1.35f,1.35f,1.35f};float total=0;for(float q:bw)total+=q;float u=(w-gap*(bw.length+1))/total,l=gap;
+        for(float q:bw){float r=l+u*q;if(x>=l&&x<r){setPressGlow(l,t,r,b,held);return;}l=r+gap;}
     }
 
     @Override public boolean onTouchEvent(MotionEvent e){
@@ -1080,26 +1123,16 @@ public class FastKeysKeyboardView extends View {
     private boolean isRepeatableSymbolAt(float x,float y){
         int row=getRowAt(y);
         if(row==2){
-            float w=getWidth();
-            float[] wt={.55f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,1.45f};
-            float total=0; for(float q:wt) total+=q;
-            float unit=(w-gap*(wt.length+1))/total, x0=gap;
-            for(int i=0;i<wt.length;i++){
-                float r=x0+unit*wt[i];
-                if(x>=x0 && x<r) return i>=1 && i<=12;
-                x0=r+gap;
-            }
+            float w=getWidth();float[] wt={1,1,1,1,1,1,1,1,1,1,1,1,1.45f};float total=0;for(float q:wt)total+=q;float unit=(w-gap*(wt.length+1))/total,x0=gap;
+            for(int i=0;i<wt.length;i++){float r=x0+unit*wt[i];if(x>=x0&&x<r)return i<12;x0=r+gap;}
         }
-        if(row==4 || row==5){
-            if(!englishMode && row==5) return true;
-            if(englishMode && row==4){
-                float cw=(getWidth()-gap*12f)/11f, x0=gap;
-                for(int i=0;i<11;i++){ if(x>=x0 && x<x0+cw) return i>=9; x0+=cw+gap; }
-            }
-            if(englishMode && row==5){
-                float cw=(getWidth()-gap*12f)/11f, x0=gap;
-                for(int i=0;i<11;i++){ if(x>=x0 && x<x0+cw) return i>=7; x0+=cw+gap; }
-            }
+        if(row==4&&!englishMode){
+            float leftW=keyH*.70f;float enterW=keyH+gap;float available=getWidth()-enterW-gap-leftW,base=(available-gap*12f)/10.7f,x0=gap+leftW+gap;
+            for(int i=0;i<11;i++){float cw=(i>=9)?base*1.35f:base;float r=x0+cw;if(x>=x0&&x<r)return i>=9;x0=r+gap;}
+        }
+        if(row==5&&englishMode){
+            float enterW=keyH+gap,available=getWidth()-enterW-gap,ww=(available-gap*12f)/11f,x0=gap;
+            for(int i=0;i<11;i++){float r=x0+ww;if(x>=x0&&x<r)return i>=7;x0=r+gap;}
         }
         return false;
     }
@@ -1118,103 +1151,59 @@ public class FastKeysKeyboardView extends View {
     }
 
     private void handle(float x,float y){
-        float w=getWidth();
-        int row=getRowAt(y);
-        if(row<0 || row>6) return;
-
+        float w=getWidth(); int row=getRowAt(y); if(row<0||row>6)return;
         if(row==0){
-            float[] wt={.55f,1.45f,1.55f,1.05f,1.0f,1.0f,1.0f,1.25f,.55f};
-            float total=0; for(float q:wt) total+=q;
-            float unit=(w-gap*(wt.length+1))/total, x0=gap;
-            for(int i=0;i<wt.length;i++){
-                float r=x0+unit*wt[i];
-                if(x>=x0 && x<r){
-                    if(i==0) service.voiceSearch(englishMode ? "en-US" : "fa-IR");
-                    else if(i==1) service.copyAll();
-                    else if(i==2) service.copyScreen();
-                    else if(i==3) service.paste();
-                    else if(i==4) service.cut();
-                    else if(i==5) { service.undo(); startUndoRepeat(); }
-                    else if(i==6) { service.redo(); startRedoRepeat(); }
-                    else if(i==7) showClipboardHistory();
-                    else if(i==8) showDrawer();
-                    return;
-                }
-                x0=r+gap;
-            }
-            return;
+            float[] wt={1,1,1,1.45f,1.55f,1.05f,1,1,1,1.25f,1,1};float total=0;for(float q:wt)total+=q;float u=(w-gap*(wt.length+1))/total,l=gap;
+            for(int i=0;i<wt.length;i++){float r=l+u*wt[i];if(x>=l&&x<r){
+                if(i==0) service.move(KeyEvent.KEYCODE_DPAD_DOWN);
+                else if(i==1) service.move(KeyEvent.KEYCODE_DPAD_UP);
+                else if(i==2) service.voiceSearch(englishMode?"en-US":"fa-IR");
+                else if(i==3) service.copyAll();
+                else if(i==4) service.copyScreen();
+                else if(i==5) service.paste();
+                else if(i==6) service.cut();
+                else if(i==7){service.undo();startUndoRepeat();}
+                else if(i==8){service.redo();startRedoRepeat();}
+                else if(i==9) showClipboardHistory();
+                else if(i==10) showMouseControls();
+                else if(i==11){suggestionsHidden=!suggestionsHidden;invalidate();}
+                return;} l=r+gap;} return;
         }
         if(row==1){
-            int i=Math.max(0,Math.min(5,(int)(x/(w/6f))));
-            if(!suggestions[i].isEmpty()) service.replaceCurrentWord(suggestions[i]);
+            float sw=(w-gap*8f)/8f;int i=(int)((x-gap)/sw);if(i<0)i=0;if(i>7)i=7;
+            if(i<6&&!suggestions[i].isEmpty()&&!suggestionsHidden) service.replaceCurrentWord(suggestions[i]);
+            else if(i==6){suggestionsHidden=!suggestionsHidden;invalidate();}
             return;
         }
         if(row==2){
-            float[] wt={.55f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,.9f,1.45f};
-            float total=0; for(float q:wt) total+=q;
-            float unit=(w-gap*(wt.length+1))/total, x0=gap;
-            for(int i=0;i<wt.length;i++){
-                float r=x0+unit*wt[i];
-                if(x>=x0 && x<r){
-                    if(i==0) { caps=!caps; invalidate(); return; }
-                    if(i==13){ startBackspace(); return; }
-                    String[] normal=englishMode ? new String[]{"1","2","3","4","5","6","7","8","9","0","-","="} : new String[]{"۱","۲","۳","۴","۵","۶","۷","۸","۹","۰","-","="};
-                    String[] shifted={"!","@","#","$","%","^","&","*","(",")","_","+"};
-                    service.type(caps ? shifted[i-1] : normal[i-1]);
-                    return;
-                }
-                x0=r+gap;
-            }
-            return;
+            float[] wt={1,1,1,1,1,1,1,1,1,1,1,1,1.45f};float total=0;for(float q:wt)total+=q;float u=(w-gap*(wt.length+1))/total,l=gap;
+            for(int i=0;i<wt.length;i++){float r=l+u*wt[i];if(x>=l&&x<r){
+                if(i==12){startBackspace();return;}
+                String[] normal=englishMode?new String[]{"1","2","3","4","5","6","7","8","9","0","-","="}:new String[]{"۱","۲","۳","۴","۵","۶","۷","۸","۹","۰","-","="};
+                String[] shifted={"!","@","#","$","%","^","&","*","(",")","_","+"};
+                service.type(caps?shifted[i]:normal[i]);return;}l=r+gap;}return;
         }
+        float enterW=keyH+gap;
+        if(row>=3&&row<=5&&x>w-enterW){service.enter();return;}
         if(row==3){
-            float left=keyH+gap;
-            float available=w-left-gap, normalW=(available-gap*12f)/13f;
-            float x0=left+gap;
-            String[] normal=englishMode ? new String[]{"q","w","e","r","t","y","u","i","o","p","[","]","\\"} : new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ"};
-            for(int i=0;i<13;i++){
-                if(x>=x0 && x<x0+normalW){ service.typeEnglish(normal[i], false); return; }
-                x0+=normalW+gap;
-            }
-            return;
+            float available=w-enterW-gap,ww=(available-gap*13f)/12f,l=gap;
+            String[] normal=englishMode?new String[]{"q","w","e","r","t","y","u","i","o","p","[","]"}:new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ"};
+            for(int i=0;i<12;i++){float r=l+ww;if(x>=l&&x<r){if(englishMode)service.typeEnglish(normal[i],caps);else service.type(normal[i]);return;}l=r+gap;}return;
         }
-        if(row==4 || row==5){
-            float enterW=0;
-            float left=0;
-            String[] normal=englishMode ? (row==4?new String[]{"a","s","d","f","g","h","j","k","l",";","'"}:new String[]{"z","x","c","v","b","n","m",",",".","/","?"})
-                    : (row==4?new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"}:new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"});
-            String[] shifted=englishMode ? (row==4?new String[]{"A","S","D","F","G","H","J","K","L",":","'"}:new String[]{"Z","X","C","V","B","N","M","<",">","?","?"})
-                    : (row==4?new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"}:new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"});
-            float available=w-left-enterW-gap;
-            float cw=(available-gap*(normal.length+1))/normal.length;
-            float x0=left+gap;
-            for(int i=0;i<normal.length;i++){
-                if(x>=x0 && x<x0+cw){ if(!englishMode && row==5){ if(i==normal.length-1){ service.type("،"); return; } if(i==normal.length-2){ service.type("؟"); return; } } if(englishMode){ service.typeEnglish(normal[i], caps); } else service.type(caps ? shifted[i] : normal[i]); return; }
-                x0+=cw+gap;
-            }
-            return;
+        if(row==4){
+            float leftW=keyH*.70f,l=gap;if(x>=l&&x<l+leftW){caps=!caps;invalidate();return;}l+=leftW+gap;
+            String[] normal=englishMode?new String[]{"a","s","d","f","g","h","j","k","l",";","'"}:new String[]{"ظ","ط","ز","ر","ذ","د","ژ","پ","و","؟","،"};
+            float available=w-enterW-gap-leftW,unit=(available-gap*12f)/10f;
+            for(int i=0;i<11;i++){float q=(i>=9)?unit*1.35f:unit;float r=l+q;if(x>=l&&x<r){if(englishMode)service.typeEnglish(normal[i],caps);else service.type(normal[i]);return;}l=r+gap;}return;
         }
-        if(row==6){
-            float[] bw={1,1,1,3.9f,1.35f,1.35f,1.35f,1.35f};
-            float total=0; for(float q:bw) total+=q;
-            float unit=(w-gap*(bw.length+1))/total, x0=gap;
-            for(int i=0;i<bw.length;i++){
-                float r=x0+unit*bw[i];
-                if(x>=x0 && x<r){
-                    if(i==0) showSymbolPicker();
-                    else if(i==1) { englishMode=!englishMode; invalidate(); }
-                    else if(i==2) showEmojiPicker();
-                    else if(i==3) service.type(" ");
-                    else if(i==4) service.move(KeyEvent.KEYCODE_DPAD_UP);
-                    else if(i==5) service.move(KeyEvent.KEYCODE_DPAD_DOWN);
-                    else if(i==6) service.moveCursorHorizontal(-1);
-                    else if(i==7) service.moveCursorHorizontal(1);
-
-                    return;
-                }
-                x0=r+gap;
-            }
+        if(row==5){
+            float available=w-enterW-gap,ww=(available-gap*12f)/11f,l=gap;
+            String[] normal=englishMode?new String[]{"z","x","c","v","b","n","m",",",".","/","?"}:new String[]{"ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"};
+            for(int i=0;i<11;i++){float r=l+ww;if(x>=l&&x<r){if(englishMode)service.typeEnglish(normal[i],caps);else service.type(normal[i]);return;}l=r+gap;}return;
         }
+        float[] bw={1,1,1,3.3f,1,1.35f,1.35f,1.35f,1.35f};float total=0;for(float q:bw)total+=q;float u=(w-gap*(bw.length+1))/total,l=gap;
+        for(int i=0;i<bw.length;i++){float r=l+u*bw[i];if(x>=l&&x<r){
+            if(i==0)showSymbolPicker();else if(i==1){englishMode=!englishMode;invalidate();}else if(i==2)showEmojiPicker();else if(i==3)service.type(" ");else if(i==4)service.type(".");else if(i==5)service.moveCursorHorizontal(-1);else if(i==6)service.moveCursorHorizontal(1);else if(i==7)service.move(KeyEvent.KEYCODE_DPAD_UP);else if(i==8)service.move(KeyEvent.KEYCODE_DPAD_DOWN);return;}l=r+gap;}
     }
 
     private void showMouseControls(){
