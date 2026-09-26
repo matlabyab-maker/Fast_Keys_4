@@ -731,7 +731,7 @@ public class FastKeysKeyboardView extends View {
         float w=getWidth(),h=getHeight();
         gap=dp(4);
         // Six normal key rows plus a half-height suggestion row.
-        keyH=(h-gap*8f)/6.5f;
+        keyH=(h-gap*8f)/7.62f;
         suggestionH=keyH*0.62f;
 
         drawKeyboard(c);
@@ -920,12 +920,17 @@ public class FastKeysKeyboardView extends View {
     }
 
     private void drawPressGlow(Canvas c){
-        float inset = Math.max(2f, keyH * .045f);
-        c.save();
-        c.clipRect(pressL + inset, pressT + inset, pressR - inset, pressB - inset);
+        // Keep the press light exactly inside the same rounded shape as the key.
+        float inset = Math.max(1f, keyH * .018f);
+        float l = pressL + inset, t = pressT + inset, r = pressR - inset, b = pressB - inset;
+        float radius = Math.max(2f, Math.min(7f, keyH * .025f));
         p.setStyle(Paint.Style.FILL);
         p.setColor(Color.argb(145, 255, 190, 0));
-        c.drawRoundRect(pressL + inset, pressT + inset, pressR - inset, pressB - inset, 5, 5, p);
+        c.save();
+        Path clip = new Path();
+        clip.addRoundRect(new RectF(l, t, r, b), radius, radius, Path.Direction.CW);
+        c.clipPath(clip);
+        c.drawRoundRect(l, t, r, b, radius, radius, p);
         c.restore();
     }
 
@@ -1103,7 +1108,7 @@ public class FastKeysKeyboardView extends View {
         stopRepeat();
         repeatX=x; repeatY=y;
         repeat=()->{ handle(repeatX,repeatY); handler.postDelayed(repeat,110); };
-        handler.postDelayed(repeat,350);
+        handler.postDelayed(repeat,600);
     }
 
     private boolean isBackspaceAt(float x,float y){
@@ -1286,7 +1291,7 @@ for(String s:moreSymbols){ Button b=new Button(service); b.setText(s); b.setText
                 service.typeUnit(symbol);
                 stopRepeat();
                 repeat=()->{ service.typeUnit(symbol); handler.postDelayed(repeat,110); };
-                handler.postDelayed(repeat,350);
+                handler.postDelayed(repeat,600);
                 return true;
             }
             if(e.getAction()==MotionEvent.ACTION_UP || e.getAction()==MotionEvent.ACTION_CANCEL){
@@ -1301,7 +1306,7 @@ for(String s:moreSymbols){ Button b=new Button(service); b.setText(s); b.setText
         service.backspace();
         stopRepeat();
         repeat=()->{ service.backspace(); handler.postDelayed(repeat,55); };
-        handler.postDelayed(repeat,350);
+        handler.postDelayed(repeat,600);
     }
 
     private void startUndoRepeat(){
